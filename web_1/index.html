@@ -63,6 +63,13 @@
           </svg>
           Schema
         </button>
+        <button type="button" id="btn-editor" class="btn-schema btn-editor-toggle" title="Open PostgreSQL Query Studio" aria-label="Open PostgreSQL Query Studio">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="16 18 22 12 16 6"></polyline>
+            <polyline points="8 6 2 12 8 18"></polyline>
+          </svg>
+          Editor
+        </button>
       </div>
       <div class="topbar-right" id="topbar-auth-mobile"></div>
     </header>
@@ -111,6 +118,104 @@
                 <span class="schema-pill"><code>presentation</code></span>
                 <span class="schema-pill"><code>room</code></span>
                 <span class="schema-pill"><code>presentation_attendance</code></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- PostgreSQL Query Studio in Content Page -->
+          <div id="editor-page-view" class="editor-page-view" hidden>
+            <div class="editor-page-card">
+              <div class="editor-header">
+                <div class="editor-title-group">
+                  <div class="editor-title">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:#ea580c;">
+                      <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                      <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+                      <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+                    </svg>
+                    <span>PostgreSQL Query Studio</span>
+                    <span class="editor-badge" id="editor-dialect-badge">Neon Cloud</span>
+                  </div>
+                </div>
+                <div class="editor-header-actions">
+                  <select id="editor-sample-queries" class="editor-select" title="Load sample PostgreSQL query">
+                    <option value="" disabled selected>Sample Queries</option>
+                    <option value="SELECT * FROM attendee ORDER BY attendee_id LIMIT 10;">1. Attendees (First 10)</option>
+                    <option value="SELECT room_id, seat_capacity, floor_number FROM room WHERE seat_capacity > 50 ORDER BY seat_capacity DESC;">2. Large Rooms (>50 Capacity)</option>
+                    <option value="SELECT c.name AS company, COUNT(a.attendee_id) AS attendee_count FROM company c LEFT JOIN attendee a ON a.company_id = c.company_id GROUP BY c.company_id, c.name ORDER BY attendee_count DESC LIMIT 10;">3. Top Companies by Attendees</option>
+                    <option value="SELECT p.title, r.room_id, p.start_time, p.end_time FROM presentation p JOIN room r ON p.room_id = r.room_id ORDER BY p.start_time;">4. Presentation Schedule & Rooms</option>
+                    <option value="SELECT p.title, COUNT(pa.attendee_id) AS attendees_registered FROM presentation p JOIN presentation_attendance pa ON p.presentation_id = pa.presentation_id GROUP BY p.presentation_id, p.title ORDER BY attendees_registered DESC;">5. Presentation Attendance Count</option>
+                  </select>
+                  <button type="button" id="btn-editor-run" class="editor-btn editor-btn--run" title="Run Query (Ctrl + Enter)">
+                    <i class="fa-solid fa-play"></i> Run Query
+                  </button>
+                  <button type="button" id="btn-editor-clear" class="editor-btn" title="Clear Editor">
+                    <i class="fa-solid fa-rotate-left"></i> Clear
+                  </button>
+                  <button type="button" id="btn-close-editor-page" class="editor-btn editor-btn--close" title="Close Editor">
+                    <i class="fa-solid fa-xmark"></i> Close
+                  </button>
+                </div>
+              </div>
+
+              <!-- SQL Input Box -->
+              <div class="editor-body">
+                <div class="editor-textarea-wrapper">
+                  <div class="editor-line-numbers" id="editor-line-numbers">1</div>
+                  <textarea id="editor-code-input" class="editor-code-input" spellcheck="false" autocomplete="off" placeholder="-- Type your PostgreSQL query here... (e.g. SELECT * FROM attendee LIMIT 10;)" rows="5"></textarea>
+                </div>
+
+                <div class="editor-statusbar">
+                  <div class="editor-status-left">
+                    <span class="editor-shortcut"><kbd>Ctrl</kbd> + <kbd>Enter</kbd> to execute</span>
+                    <span class="editor-status-msg" id="editor-status-msg">Ready</span>
+                  </div>
+                  <div class="editor-status-right" id="editor-metrics">
+                    <span id="editor-latency" class="editor-metric-tag" hidden></span>
+                    <span id="editor-row-count" class="editor-metric-tag" hidden></span>
+                  </div>
+                </div>
+
+                <!-- Error Diagnostic Banner -->
+                <div id="editor-error-box" class="editor-error-box" hidden>
+                  <div class="editor-error-header">
+                    <div class="editor-error-title">
+                      <i class="fa-solid fa-triangle-exclamation"></i>
+                      <span>Execution Error</span>
+                    </div>
+                    <button type="button" id="btn-editor-fix-ai" class="editor-btn editor-btn--ai" title="Diagnose & Fix with AI">
+                      <i class="fa-solid fa-wand-magic-sparkles"></i> Fix with AI
+                    </button>
+                  </div>
+                  <pre class="editor-error-detail" id="editor-error-detail"></pre>
+                  <div id="editor-ai-solution" class="editor-ai-solution" hidden>
+                    <div class="editor-ai-title">AI Suggested Correction:</div>
+                    <pre class="editor-ai-sql" id="editor-ai-sql"></pre>
+                    <button type="button" id="btn-editor-apply-fix" class="editor-btn editor-btn--apply">Apply Fix to Editor</button>
+                  </div>
+                </div>
+
+                <!-- Table Results -->
+                <div class="editor-results-container">
+                  <div class="editor-results-topbar">
+                    <div class="editor-results-heading">
+                      <i class="fa-solid fa-table"></i> Results Grid
+                    </div>
+                    <button type="button" id="btn-editor-csv-export" class="editor-btn editor-btn--sm" title="Export as CSV" hidden>
+                      <i class="fa-solid fa-download"></i> Export CSV
+                    </button>
+                  </div>
+                  <div class="editor-table-scroll" id="editor-table-scroll">
+                    <div class="editor-empty-state" id="editor-empty-state">
+                      <i class="fa-solid fa-code" style="font-size:24px;opacity:0.3;margin-bottom:6px;"></i>
+                      <p>Run a query above to view PostgreSQL results</p>
+                    </div>
+                    <table class="editor-data-table" id="editor-data-table" hidden>
+                      <thead id="editor-data-thead"></thead>
+                      <tbody id="editor-data-tbody"></tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

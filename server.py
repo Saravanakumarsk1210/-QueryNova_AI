@@ -241,6 +241,13 @@ def execute_sql_endpoint(req: SQLExecuteRequest):
         "dialect": getattr(res, 'dialect', 'Database')
     }
 
+@app.post("/api/diagnose-sql")
+@app.post("/api/v1/diagnose-sql")
+def diagnose_sql_endpoint(req: SQLExecuteRequest):
+    """Diagnoses and corrects SQL queries using the educational learner engine."""
+    res = SQLLearnerEngine.diagnose_and_execute(req.sql)
+    return res
+
 # ── MAIN SSE QUERY PIPELINE ENDPOINT ──
 
 @app.post("/api/chats/{chat_id}/query")

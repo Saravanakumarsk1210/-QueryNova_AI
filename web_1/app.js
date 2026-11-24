@@ -144,6 +144,7 @@
 
   function setActiveChat(chat) {
     if (typeof closeSchemaPage === 'function') closeSchemaPage();
+    if (typeof closeEditorPage === 'function') closeEditorPage();
     collapseResultsDock();
     state.sqlResultCache = {};
     state.sqlResultBySql = {};
@@ -1139,6 +1140,7 @@
     if (!q) return;
 
     if (typeof closeSchemaPage === 'function') closeSchemaPage();
+    if (typeof closeEditorPage === 'function') closeEditorPage();
 
     var ensureChat;
     if (!state.activeChatId) {
@@ -1911,6 +1913,7 @@
 
   function openSchemaPage() {
     if (!schemaPageView) return;
+    if (typeof closeEditorPage === 'function') closeEditorPage();
     schemaPageView.hidden = false;
     var welcome = document.getElementById('chat-welcome');
     var content = document.getElementById('chat-content');
@@ -1972,6 +1975,326 @@
   }
   if (btnZoom) {
     btnZoom.addEventListener('click', toggleSchemaZoom);
+  }
+
+  // ── PostgreSQL Query Studio Logic ─────────────────────────────
+  var btnEditor = get('btn-editor');
+  var editorPageView = get('editor-page-view');
+  var btnCloseEditorPage = get('btn-close-editor-page');
+  var editorCodeInput = get('editor-code-input');
+  var editorLineNumbers = get('editor-line-numbers');
+  var editorSampleQueries = get('editor-sample-queries');
+  var btnEditorRun = get('btn-editor-run');
+  var btnEditorClear = get('btn-editor-clear');
+  var editorStatusMsg = get('editor-status-msg');
+  var editorLatency = get('editor-latency');
+  var editorRowCount = get('editor-row-count');
+  var editorErrorBox = get('editor-error-box');
+  var editorErrorDetail = get('editor-error-detail');
+  var btnEditorFixAi = get('btn-editor-fix-ai');
+  var editorAiSolution = get('editor-ai-solution');
+  var editorAiSql = get('editor-ai-sql');
+  var btnEditorApplyFix = get('btn-editor-apply-fix');
+  var editorDataTable = get('editor-data-table');
+  var editorDataThead = get('editor-data-thead');
+  var editorDataTbody = get('editor-data-tbody');
+  var editorEmptyState = get('editor-empty-state');
+  var btnEditorCsvExport = get('btn-editor-csv-export');
+
+  var lastEditorData = { columns: [], rows: [] };
+
+  function openEditorPage() {
+    if (!editorPageView) return;
+    if (typeof closeSchemaPage === 'function') closeSchemaPage();
+    editorPageView.hidden = false;
+    var welcome = document.getElementById('chat-welcome');
+    var content = document.getElementById('chat-content');
+    if (welcome) welcome.style.display = 'none';
+    if (content) content.hidden = true;
+    if (btnEditor) btnEditor.classList.add('active');
+    if (editorCodeInput) {
+      if (!editorCodeInput.value.trim()) {
+        editorCodeInput.value = 'SELECT * FROM attendee ORDER BY attendee_id LIMIT 10;';
+        updateEditorLineNumbers();
+      }
+      editorCodeInput.focus();
+    }
+  }
+
+  function closeEditorPage() {
+    if (!editorPageView) return;
+    editorPageView.hidden = true;
+    if (btnEditor) btnEditor.classList.remove('active');
+    var welcome = document.getElementById('chat-welcome');
+    var content = document.getElementById('chat-content');
+    var hasMsgs = (state.chatMessages && state.chatMessages.length > 0) || (activeRs() && activeRs().submittedQuery);
+    if (hasMsgs) {
+      if (welcome) welcome.style.display = 'none';
+      if (content) content.hidden = false;
+    } else {
+      if (welcome) welcome.style.display = '';
+      if (content) content.hidden = true;
+    }
+  }
+
+  function updateEditorLineNumbers() {
+    if (!editorCodeInput || !editorLineNumbers) return;
+    var lines = (editorCodeInput.value || '').split('\n').length;
+    var nums = [];
+    for (var i = 1; i <= lines; i++) {
+      nums.push(i);
+    }
+    editorLineNumbers.innerHTML = nums.join('<br>');
+  }
+
+  if (editorCodeInput) {
+    editorCodeInput.addEventListener('input', updateEditorLineNumbers);
+    editorCodeInput.addEventListener('keydown', function (e) {
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        var start = this.selectionStart;
+        var end = this.selectionEnd;
+        this.value = this.value.substring(0, start) + '    ' + this.value.substring(end);
+        this.selectionStart = this.selectionEnd = start + 4;
+        updateEditorLineNumbers();
+      }
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        runEditorQuery();
+      }
+    });
+  }
+
+  if (editorSampleQueries) {
+    editorSampleQueries.addEventListener('change', function () {
+      if (this.value && editorCodeInput) {
+        editorCodeInput.value = this.value;
+        updateEditorLineNumbers();
+        this.selectedIndex = 0;
+        runEditorQuery();
+      }
+    });
+  }
+
+  if (btnEditorClear) {
+    btnEditorClear.addEventListener('click', function () {
+      if (editorCodeInput) {
+        editorCodeInput.value = '';
+        updateEditorLineNumbers();
+        editorCodeInput.focus();
+      }
+      if (editorErrorBox) editorErrorBox.hidden = true;
+      if (editorDataTable) editorDataTable.hidden = true;
+      if (editorEmptyState) editorEmptyState.hidden = false;
+      if (btnEditorCsvExport) btnEditorCsvExport.hidden = true;
+      if (editorLatency) editorLatency.hidden = true;
+      if (editorRowCount) editorRowCount.hidden = true;
+      if (editorStatusMsg) editorStatusMsg.textContent = 'Ready';
+    });
+  }
+
+  function runEditorQuery() {
+    if (!editorCodeInput) return;
+    var sql = editorCodeInput.value.trim();
+    if (!sql) {
+      if (editorStatusMsg) editorStatusMsg.textContent = 'Please enter a SQL query';
+      return;
+    }
+
+    if (editorStatusMsg) editorStatusMsg.textContent = 'Executing against Neon PostgreSQL...';
+    if (btnEditorRun) btnEditorRun.disabled = true;
+    if (editorErrorBox) editorErrorBox.hidden = true;
+    if (editorAiSolution) editorAiSolution.hidden = true;
+
+    fetch('/api/v1/execute-sql', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sql: sql })
+    })
+      .then(function (res) {
+        return res.json().then(function (data) {
+          return { ok: res.ok, status: res.status, data: data };
+        });
+      })
+      .then(function (result) {
+        if (btnEditorRun) btnEditorRun.disabled = false;
+        if (!result.ok) {
+          var errMsg = (result.data && result.data.detail) ? result.data.detail : 'Query execution failed.';
+          showEditorError(errMsg, sql);
+          return;
+        }
+
+        var resData = result.data;
+        var cols = resData.columns || [];
+        var rows = resData.rows || [];
+        lastEditorData = { columns: cols, rows: rows };
+
+        if (editorStatusMsg) editorStatusMsg.textContent = 'Execution complete';
+        if (editorLatency) {
+          editorLatency.hidden = false;
+          editorLatency.textContent = (resData.execution_time_ms || 0) + ' ms';
+        }
+        if (editorRowCount) {
+          editorRowCount.hidden = false;
+          editorRowCount.textContent = (resData.row_count || 0) + ' row' + ((resData.row_count === 1) ? '' : 's');
+        }
+
+        renderEditorTable(cols, rows);
+      })
+      .catch(function (err) {
+        if (btnEditorRun) btnEditorRun.disabled = false;
+        showEditorError(err.message || String(err), sql);
+      });
+  }
+
+  function showEditorError(errMsg, sql) {
+    if (editorStatusMsg) editorStatusMsg.textContent = 'Error executing query';
+    if (editorLatency) editorLatency.hidden = true;
+    if (editorRowCount) editorRowCount.hidden = true;
+    if (editorDataTable) editorDataTable.hidden = true;
+    if (editorEmptyState) editorEmptyState.hidden = false;
+    if (btnEditorCsvExport) btnEditorCsvExport.hidden = true;
+
+    if (editorErrorBox && editorErrorDetail) {
+      editorErrorBox.hidden = false;
+      editorErrorDetail.textContent = errMsg;
+    }
+
+    if (btnEditorFixAi) {
+      btnEditorFixAi.onclick = function () {
+        diagnoseWithAi(sql);
+      };
+    }
+  }
+
+  function diagnoseWithAi(sql) {
+    if (!sql) return;
+    if (btnEditorFixAi) {
+      btnEditorFixAi.disabled = true;
+      btnEditorFixAi.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Diagnosing...';
+    }
+
+    fetch('/api/v1/diagnose-sql', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sql: sql })
+    })
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        if (btnEditorFixAi) {
+          btnEditorFixAi.disabled = false;
+          btnEditorFixAi.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Fix with AI';
+        }
+
+        var corrected = data.corrected_sql || data.sql;
+        if (corrected && editorAiSolution && editorAiSql) {
+          editorAiSolution.hidden = false;
+          editorAiSql.textContent = corrected;
+
+          if (btnEditorApplyFix) {
+            btnEditorApplyFix.onclick = function () {
+              if (editorCodeInput) {
+                editorCodeInput.value = corrected;
+                updateEditorLineNumbers();
+                if (editorAiSolution) editorAiSolution.hidden = true;
+                if (editorErrorBox) editorErrorBox.hidden = true;
+                runEditorQuery();
+              }
+            };
+          }
+        }
+      })
+      .catch(function () {
+        if (btnEditorFixAi) {
+          btnEditorFixAi.disabled = false;
+          btnEditorFixAi.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Fix with AI';
+        }
+      });
+  }
+
+  function renderEditorTable(cols, rows) {
+    if (!editorDataTable || !editorDataThead || !editorDataTbody) return;
+
+    if (!cols.length || !rows.length) {
+      editorDataTable.hidden = true;
+      if (editorEmptyState) {
+        editorEmptyState.hidden = false;
+        editorEmptyState.innerHTML = '<i class="fa-solid fa-circle-check" style="font-size:24px;color:#16a34a;margin-bottom:6px;"></i><p>Query executed successfully (0 rows returned)</p>';
+      }
+      if (btnEditorCsvExport) btnEditorCsvExport.hidden = true;
+      return;
+    }
+
+    if (editorEmptyState) editorEmptyState.hidden = true;
+    editorDataTable.hidden = false;
+    if (btnEditorCsvExport) btnEditorCsvExport.hidden = false;
+
+    // Build thead
+    var thHtml = '<tr>' + cols.map(function (c) {
+      return '<th>' + escapeHtml(c) + '</th>';
+    }).join('') + '</tr>';
+    editorDataThead.innerHTML = thHtml;
+
+    // Build tbody
+    var trHtml = rows.map(function (row) {
+      var cells = cols.map(function (col) {
+        var val = (row && row[col] !== undefined && row[col] !== null) ? String(row[col]) : '';
+        return '<td>' + escapeHtml(val) + '</td>';
+      }).join('');
+      return '<tr>' + cells + '</tr>';
+    }).join('');
+    editorDataTbody.innerHTML = trHtml;
+  }
+
+  if (btnEditorCsvExport) {
+    btnEditorCsvExport.addEventListener('click', function () {
+      if (!lastEditorData.columns.length || !lastEditorData.rows.length) return;
+      var cols = lastEditorData.columns;
+      var rows = lastEditorData.rows;
+
+      var csvRows = [cols.map(function (c) { return '"' + String(c).replace(/"/g, '""') + '"'; }).join(',')];
+      rows.forEach(function (r) {
+        var line = cols.map(function (c) {
+          var val = (r[c] !== null && r[c] !== undefined) ? String(r[c]) : '';
+          return '"' + val.replace(/"/g, '""') + '"';
+        }).join(',');
+        csvRows.push(line);
+      });
+
+      var blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+      var url = URL.createObjectURL(blob);
+      var link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', 'postgresql_query_results_' + Date.now() + '.csv');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    });
+  }
+
+  if (btnEditorRun) {
+    btnEditorRun.addEventListener('click', function (e) {
+      e.preventDefault();
+      runEditorQuery();
+    });
+  }
+
+  if (btnEditor) {
+    btnEditor.addEventListener('click', function (e) {
+      e.preventDefault();
+      if (editorPageView && !editorPageView.hidden) {
+        closeEditorPage();
+      } else {
+        openEditorPage();
+      }
+    });
+  }
+
+  if (btnCloseEditorPage) {
+    btnCloseEditorPage.addEventListener('click', function (e) {
+      e.preventDefault();
+      closeEditorPage();
+    });
   }
 
   var modalCreate = get('modal-create');
