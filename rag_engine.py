@@ -1,6 +1,9 @@
 import json
 import re
-import numpy as np
+try:
+    import numpy as np
+except ImportError:
+    np = None
 import httpx
 import time
 from typing import List, Dict, Any, Tuple
