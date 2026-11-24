@@ -1,4 +1,5 @@
 import os
+import re
 import sqlite3
 import time
 from datetime import datetime, date, time as dt_time
@@ -21,7 +22,22 @@ except OSError:
 db_url_env = getattr(config, 'DATABASE_URL', '')
 if db_url_env and (db_url_env.startswith('postgresql://') or db_url_env.startswith('postgres://')):
     sa_url = db_url_env.replace('postgres://', 'postgresql://')
-    engine = create_engine(sa_url, pool_pre_ping=True, pool_size=5, max_overflow=10)
+    if '+' not in sa_url.split('://')[0]:
+        try:
+            import psycopg
+            sa_url = sa_url.replace('postgresql://', 'postgresql+psycopg://')
+        except ImportError:
+            try:
+                import psycopg2
+                sa_url = sa_url.replace('postgresql://', 'postgresql+psycopg2://')
+            except ImportError:
+                pass
+    try:
+        engine = create_engine(sa_url, pool_pre_ping=True, pool_size=5, max_overflow=10)
+    except Exception as _e:
+        print(f"[WARN] Failed to create PostgreSQL engine ({_e}), falling back to SQLite")
+        DATABASE_URL = f"sqlite:///{config.CHAT_DB_PATH}"
+        engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 else:
     DATABASE_URL = f"sqlite:///{config.CHAT_DB_PATH}"
     engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
@@ -64,7 +80,10 @@ class Message(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     chat = relationship("Chat", back_populates="messages")
 
-Base.metadata.create_all(bind=engine)
+try:
+    Base.metadata.create_all(bind=engine)
+except Exception as _e:
+    print(f"[WARN] Database schema init note: {_e}")
 
 # Ensure schema columns match ORM models
 if engine.dialect.name == "sqlite":
@@ -127,22 +146,42 @@ class TargetDatabaseManager:
 
     @classmethod
     def get_postgres_connection(cls):
-        import psycopg2
-        from psycopg2.extras import RealDictCursor
         db_url = getattr(config, 'DATABASE_URL', '')
-        if db_url and (db_url.startswith('postgresql://') or db_url.startswith('postgres://')):
-            conn = psycopg2.connect(db_url, connect_timeout=10)
-        else:
-            conn = psycopg2.connect(
-                dbname=config.PG_LEARNING_DB,
-                user=config.PG_USER,
-                password=config.PG_PASSWORD,
-                host=config.PG_HOST,
-                port=config.PG_PORT,
-                connect_timeout=3
-            )
-        conn.set_session(readonly=True, autocommit=True)
-        return conn
+        # Prefer modern psycopg (v3) with seamless fallback to psycopg2
+        try:
+            import psycopg
+            from psycopg.rows import dict_row
+            if db_url and (db_url.startswith('postgresql://') or db_url.startswith('postgres://')):
+                raw_url = re.sub(r'^postgres(?:ql)?(?:\+[a-zA-Z0-9_]+)?://', 'postgresql://', db_url)
+                return psycopg.connect(raw_url, row_factory=dict_row, connect_timeout=10, autocommit=True)
+            else:
+                return psycopg.connect(
+                    dbname=config.PG_LEARNING_DB,
+                    user=config.PG_USER,
+                    password=config.PG_PASSWORD,
+                    host=config.PG_HOST,
+                    port=config.PG_PORT,
+                    row_factory=dict_row,
+                    connect_timeout=3,
+                    autocommit=True
+                )
+        except ImportError:
+            import psycopg2
+            from psycopg2.extras import RealDictCursor
+            if db_url and (db_url.startswith('postgresql://') or db_url.startswith('postgres://')):
+                raw_url = re.sub(r'^postgres(?:ql)?(?:\+[a-zA-Z0-9_]+)?://', 'postgresql://', db_url)
+                conn = psycopg2.connect(raw_url, connect_timeout=10)
+            else:
+                conn = psycopg2.connect(
+                    dbname=config.PG_LEARNING_DB,
+                    user=config.PG_USER,
+                    password=config.PG_PASSWORD,
+                    host=config.PG_HOST,
+                    port=config.PG_PORT,
+                    connect_timeout=3
+                )
+            conn.set_session(readonly=True, autocommit=True)
+            return conn
 
     @classmethod
     def is_postgres_available(cls) -> bool:
@@ -215,11 +254,19 @@ class TargetDatabaseManager:
                 dialect_label = f"PostgreSQL ({getattr(config, 'PG_LEARNING_DB', 'rdbms_record')})"
 
             try:
-                import psycopg2
-                from psycopg2.extras import RealDictCursor
                 conn = cls.get_postgres_connection()
-                with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                    cur.execute("SET statement_timeout = 5000;")
+                is_p3 = hasattr(conn, 'row_factory')
+                if is_p3:
+                    cur = conn.cursor()
+                else:
+                    from psycopg2.extras import RealDictCursor
+                    cur = conn.cursor(cursor_factory=RealDictCursor)
+
+                with cur:
+                    try:
+                        cur.execute("SET statement_timeout = 5000;")
+                    except Exception:
+                        pass
                     cur.execute(sql_clean)
                     if cur.description:
                         cols = [d.name for d in cur.description]
