@@ -1,0 +1,51 @@
+# Environment Variables (Keep credentials private!)
+.env
+.env.local
+.env.*.local
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environments
+venv/
+.venv/
+env/
+ENV/
+
+# Local database runtime files
+data/runtime/*.db
+data/runtime/*.hash
+chats.db
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local backups
+backups/
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

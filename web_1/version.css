@@ -1,0 +1,147 @@
+.version-page {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.version-header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.back-link {
+  color: rgba(255, 255, 255, 0.9);
+  text-decoration: none;
+  font-size: 0.9375rem;
+}
+
+.back-link:hover {
+  text-decoration: underline;
+}
+
+.version-layout {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.version-panel {
+  display: flex;
+  flex-direction: column;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  min-height: 0;
+}
+
+.version-panel h2 {
+  margin: 0;
+  padding: 1rem 1.25rem;
+  font-size: 1rem;
+  color: #065f46;
+  border-bottom: 1px solid #e0e0e0;
+  flex-shrink: 0;
+}
+
+.table-wrap {
+  flex: 1;
+  overflow: auto;
+  min-height: 0;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.data-table th,
+.data-table td {
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #e0e0e0;
+  max-width: 320px;
+  word-break: break-word;
+}
+
+.data-table th {
+  background: #e6f4ea;
+  color: #065f46;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.data-table tbody tr:hover {
+  background: #f5f5f5;
+}
+
+.chart-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  min-height: 200px;
+  overflow: auto;
+}
+
+.pie-chart {
+  width: 200px;
+  height: 200px;
+}
+
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+.chart-legend .legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: #1e3a5f;
+}
+
+.chart-legend .legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.summary-text {
+  padding: 1rem 1.25rem;
+  border-top: 1px solid #e0e0e0;
+  font-size: 0.875rem;
+  color: #546e7a;
+}
+
+.version-error {
+  flex-shrink: 0;
+  margin: 0 1.5rem 1rem;
+  padding: 1rem;
+  border-radius: 8px;
+  background: #ffebee;
+  border: 1px solid #ef5350;
+  color: #c62828;
+}
+
+@media (max-width: 900px) {
+  .version-layout {
+    grid-template-columns: 1fr;
+  }
+}

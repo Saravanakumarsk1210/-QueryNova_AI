@@ -1,0 +1,32 @@
+[
+  {
+    "index": 0,
+    "type": "table",
+    "table_name": "attendee",
+    "chunk_text": "Table: attendee\nDescription: Registry of people who may attend conference presentations. Attendee contact details and VIP status are stored here; nullable contact and VIP values support incomplete records.\n\nPrimary Key: attendee_id\nForeign Keys: None\n\nColumns:\n  - attendee_id (INTEGER): Unique identifier for an attendee.\n  - first_name (VARCHAR(20)): Attendee's given name.\n  - last_name (VARCHAR(20)): Attendee's family name.\n  - phone (VARCHAR(10)): Contact phone number stored as text so leading zeroes are preserved; may be NULL.\n  - email (VARCHAR(40)): Contact email address; may be NULL, and duplicate values are possible in the practice data.\n  - vip (VARCHAR(4)): VIP indicator, typically 'yes' or 'no'; may be NULL."
+  },
+  {
+    "index": 1,
+    "type": "table",
+    "table_name": "room",
+    "chunk_text": "Table: room\nDescription: Conference room inventory. Each record identifies a room's floor and seating capacity, including rooms with low capacity for edge-case queries.\n\nPrimary Key: room_id\nForeign Keys: None\n\nColumns:\n  - room_id (INTEGER): Unique identifier for a conference room.\n  - floor_number (INTEGER): Floor on which the room is located.\n  - seat_capacity (INTEGER): Maximum number of seats in the room."
+  },
+  {
+    "index": 2,
+    "type": "table",
+    "table_name": "company",
+    "chunk_text": "Table: company\nDescription: Organizations associated with the conference. A company may have a primary contact attendee; company names are not unique, and contact or description values may be NULL.\n\nPrimary Key: company_id\nForeign Keys: primary_contact_attendee_id ? attendee.attendee_id\n\nColumns:\n  - company_id (INTEGER): Unique identifier for a company.\n  - name (VARCHAR(20)): Company or organization name; duplicate names are present in the data.\n  - description (VARCHAR(20)): Short description of the company's business or industry; may be NULL.\n  - primary_contact_attendee_id (INTEGER): Nullable foreign key to the attendee who is the company's primary contact."
+  },
+  {
+    "index": 3,
+    "type": "table",
+    "table_name": "presentation",
+    "chunk_text": "Table: presentation\nDescription: Scheduled conference presentations. A presentation may be associated with a booking company and room, both of which are nullable, and has a start and end time.\n\nPrimary Key: presentation_id\nForeign Keys: booked_company_id ? company.company_id | booked_room_id ? room.room_id\n\nColumns:\n  - presentation_id (INTEGER): Unique identifier for a presentation.\n  - booked_company_id (INTEGER): Nullable foreign key to the company booking or sponsoring the presentation.\n  - booked_room_id (INTEGER): Nullable foreign key to the room assigned to the presentation.\n  - start_time (TIMESTAMP): Scheduled presentation start date and time.\n  - end_time (TIMESTAMP): Scheduled presentation end date and time; constrained to be later than start_time."
+  },
+  {
+    "index": 4,
+    "type": "table",
+    "table_name": "presentation_attendance",
+    "chunk_text": "Table: presentation_attendance\nDescription: Ticket and attendance junction table linking attendees to presentations. Each ticket is unique; multiple tickets can link the same attendee to the same presentation in the edge-case data.\n\nPrimary Key: ticket_id\nForeign Keys: presentation_id ? presentation.presentation_id | attendee_id ? attendee.attendee_id\n\nColumns:\n  - ticket_id (VARCHAR(10)): Unique ticket identifier for an attendance record.\n  - presentation_id (INTEGER): Foreign key to the presentation associated with this ticket.\n  - attendee_id (INTEGER): Foreign key to the attendee associated with this ticket."
+  }
+]

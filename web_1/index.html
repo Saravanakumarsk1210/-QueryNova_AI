@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QueryNova AI — Intelligent Database Assistant</title>
+  <link rel="icon" type="image/webp" href="qnsql.webp" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" />
+</head>
+<body class="sidebar-open">
+
+  <!-- SIDEBAR -->
+  <aside id="chat-sidebar" class="sidebar chat-sidebar" aria-label="Chat history">
+
+    <!-- Logo row (always visible) -->
+    <div class="sidebar-logo">
+      <img src="qnsql.webp" alt="QueryNova AI Logo" class="sidebar-logo-img" />
+      <span class="sidebar-logo-text">QueryNova AI</span>
+    </div>
+
+    <!-- Authenticated content -->
+    <div id="sidebar-auth-content">
+      <div class="sidebar-section">
+        <button type="button" id="btn-new-chat" class="btn-new-chat-sidebar">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          New conversation
+        </button>
+      </div>
+      <div class="sidebar-section sidebar-history">
+        <p class="sidebar-section-label">Recent</p>
+        <div id="chat-list" class="chat-list">
+          <p class="chat-empty-msg">No conversations yet.</p>
+        </div>
+      </div>
+
+    </div>
+
+  </aside>
+
+  <!-- MAIN AREA -->
+  <div class="app-body">
+
+    <header class="topbar">
+      <button type="button" id="btn-sidebar-toggle" class="topbar-toggle" aria-label="Toggle sidebar">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <div class="topbar-brand">
+        <img src="qnsql.webp" alt="QueryNova AI Logo" class="topbar-brand-logo" />
+        <span class="topbar-title" id="topbar-chat-title">QueryNova AI</span>
+        <button type="button" id="btn-edit-topbar-title" class="btn-topbar-edit" title="Rename conversation" aria-label="Rename conversation" hidden>
+          <i class="fa-solid fa-pen"></i>
+        </button>
+        <button type="button" id="btn-schema" class="btn-schema" title="View Database Schema Diagram" aria-label="View Database Schema Diagram">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="7"></rect>
+            <rect x="14" y="3" width="7" height="7"></rect>
+            <rect x="14" y="14" width="7" height="7"></rect>
+            <rect x="3" y="14" width="7" height="7"></rect>
+          </svg>
+          Schema
+        </button>
+      </div>
+      <div class="topbar-right" id="topbar-auth-mobile"></div>
+    </header>
+
+    <div id="sidebar-backdrop" class="sidebar-backdrop" aria-hidden="true"></div>
+
+    <main class="main">
+      <div id="error-banner" class="error-banner" hidden></div>
+
+      <div class="grid grid--chat-only" id="main-grid">
+
+        <!-- Chat panel -->
+        <section class="chat-panel" id="chat-panel-main">
+
+          <!-- Schema Display in Content Page (White BG, hidden until clicked) -->
+          <div id="schema-page-view" class="schema-page-view" hidden>
+            <div class="schema-page-card">
+              <div class="schema-page-header">
+                <div class="schema-page-title">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="7" height="7"></rect>
+                    <rect x="14" y="3" width="7" height="7"></rect>
+                    <rect x="14" y="14" width="7" height="7"></rect>
+                    <rect x="3" y="14" width="7" height="7"></rect>
+                  </svg>
+                  <span>Conference Database Relational Schema</span>
+                </div>
+                <div class="schema-page-actions">
+                  <button type="button" id="btn-zoom-schema-page" class="schema-page-btn" title="Toggle zoom to inspect full detail">
+                    <i class="fa-solid fa-magnifying-glass-plus" id="schema-zoom-icon"></i> <span id="schema-zoom-text">Zoom</span>
+                  </button>
+                  <a href="schema_diagram.webp" target="_blank" class="schema-page-btn" title="Open full resolution in new tab">
+                    <i class="fa-solid fa-arrow-up-right-from-square"></i> Full Resolution
+                  </a>
+                  <button type="button" id="btn-close-schema-page" class="schema-page-btn schema-page-btn--close" title="Close Schema">
+                    <i class="fa-solid fa-xmark"></i> Close
+                  </button>
+                </div>
+              </div>
+              <div class="schema-page-body">
+                <img src="schema_diagram.webp" alt="Modern Relational Database Schema Diagram" class="schema-page-img" id="schema-page-img" title="Click to zoom in/out" />
+              </div>
+              <div class="schema-page-footer">
+                <span class="schema-pill"><code>attendee</code></span>
+                <span class="schema-pill"><code>company</code></span>
+                <span class="schema-pill"><code>presentation</code></span>
+                <span class="schema-pill"><code>room</code></span>
+                <span class="schema-pill"><code>presentation_attendance</code></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="chat-welcome" id="chat-welcome">
+            <div class="welcome-nova-icon">
+              <img src="qnsql.webp" alt="QueryNova AI Logo" class="welcome-logo-img" />
+            </div>
+            <h2 class="welcome-title">QueryNova AI</h2>
+            <p class="welcome-subtitle">Ask questions in plain English to query </p>
+            <div class="welcome-suggestions">
+              <button class="suggestion-chip" data-query="List all VIP attendees and their contact details">VIP Attendees</button>
+              <button class="suggestion-chip" data-query="Show presentations scheduled in January 2023">January 2023 Presentations</button>
+              <button class="suggestion-chip" data-query="Which companies booked presentations?">Booked Companies</button>
+              <button class="suggestion-chip" data-query="Total attendees registered per presentation">Attendance by Presentation</button>
+            </div>
+
+          </div>
+
+          <div id="chat-content" class="chat-content" hidden></div>
+
+          <div class="chat-input-area">
+            <form id="query-form" class="chat-form">
+              <div class="chat-input-wrapper">
+                <textarea id="query-input" class="chat-textarea" autocomplete="off" placeholder="Ask a question about your database..." rows="1" maxlength="4000"></textarea>
+                <div class="chat-form-actions">
+                  <button type="button" id="btn-stop" class="btn-stop" hidden aria-label="Stop">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>
+                  </button>
+                  <button type="submit" id="btn-ask" class="btn-send" aria-label="Send">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                  </button>
+                </div>
+              </div>
+              <p class="chat-disclaimer">AI-generated SQL - verify critical queries independently.</p>
+            </form>
+          </div>
+        </section>
+
+        <!-- Query results dock (legacy) -->
+        <section id="query-results-dock" class="pipeline-panel right-panel-split query-results-dock" hidden>
+          <div class="right-panel-bottom card-panel query-results-dock-card">
+            <div class="panel-header panel-header--results panel-header--results-row">
+              <div class="panel-header-left">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+                <h3 class="panel-title">Query Results</h3>
+              </div>
+              <button type="button" id="btn-collapse-results" class="btn-collapse-results" aria-label="Collapse" title="Collapse">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              </button>
+            </div>
+            <div class="panel-body">
+              <div id="results-status" class="results-status"></div>
+              <div id="results-table-wrapper" class="results-table-wrapper results-table-wrapper--dock"></div>
+              <div id="results-placeholder" class="results-placeholder">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:.3;margin-bottom:.5rem"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/></svg>
+                <p>SQL results will appear here after a query runs.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Spreadsheet split panel -->
+        <div id="spreadsheet-overlay" class="spreadsheet-overlay" hidden>
+          <div class="spreadsheet-header">
+            <div class="spreadsheet-header-left">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+              <span id="spreadsheet-title" class="spreadsheet-title">Query Results</span>
+              <span id="spreadsheet-subtitle" class="spreadsheet-subtitle">CSV</span>
+            </div>
+            <div class="spreadsheet-header-right">
+              <button type="button" id="btn-spreadsheet-copy" class="spreadsheet-btn" title="Copy data">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                Copy
+              </button>
+              <button type="button" id="btn-spreadsheet-close" class="spreadsheet-btn spreadsheet-btn--close" title="Close">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="spreadsheet-body">
+            <div id="spreadsheet-table-wrap" class="spreadsheet-table-wrap"></div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- MODALS -->
+  <div id="new-chat-modal" class="modal" role="dialog" aria-labelledby="modal-title" aria-modal="true" hidden>
+    <div class="modal-backdrop" id="modal-backdrop"></div>
+    <div class="modal-box">
+      <div class="modal-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      </div>
+      <h2 id="modal-title" class="modal-title">New conversation</h2>
+      <p class="modal-desc">Optionally give this conversation a name.</p>
+      <input type="text" id="new-chat-title-input" class="modal-input" placeholder="Conversation name (optional)" maxlength="200" />
+      <div class="modal-actions">
+        <button type="button" id="modal-cancel" class="btn btn-secondary">Cancel</button>
+        <button type="button" id="modal-create" class="btn btn-primary">Create</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="edit-message-modal" class="modal" role="dialog" aria-labelledby="edit-modal-title" aria-modal="true" hidden>
+    <div class="modal-backdrop" id="edit-modal-backdrop"></div>
+    <div class="modal-box">
+      <div class="modal-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      </div>
+      <h2 id="edit-modal-title" class="modal-title">Edit message</h2>
+      <p class="modal-desc">Your edited question will replace this turn and run again.</p>
+      <textarea id="edit-message-text" class="modal-input modal-textarea" rows="4" maxlength="4000" placeholder="Question..."></textarea>
+      <div class="modal-actions">
+        <button type="button" id="edit-modal-cancel" class="btn btn-secondary">Cancel</button>
+        <button type="button" id="edit-modal-save" class="btn btn-primary">Save &amp; resubmit</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="copy-toast" class="copy-toast" role="status" aria-live="polite">Copied to clipboard</div>
+
+  <script src="app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      var ta = document.getElementById('query-input');
+      if (ta) {
+        ta.addEventListener('input', function () {
+          this.style.height = 'auto';
+          this.style.height = Math.min(this.scrollHeight, 180) + 'px';
+        });
+        ta.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            var form = document.getElementById('query-form');
+            if (form) form.dispatchEvent(new Event('submit', { cancelable: true }));
+          }
+        });
+      }
+      document.querySelectorAll('.suggestion-chip').forEach(function (chip) {
+        chip.addEventListener('click', function () {
+          var q = this.getAttribute('data-query');
+          if (q && ta) { ta.value = q; ta.focus(); }
+        });
+      });
+    });
+  </script>
+</body>
+</html>

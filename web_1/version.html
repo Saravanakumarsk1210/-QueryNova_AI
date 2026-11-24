@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Version Analysis</title>
+  <link rel="icon" type="image/webp" href="qnsql.webp" />
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="version.css" />
+</head>
+<body class="version-page">
+  <header class="header version-header">
+    <a href="/" class="back-link">← Back to Pipeline</a>
+    <h1 id="version-title">Version Analysis</h1>
+    <a id="download-csv" href="#" class="back-link" style="margin-left:auto">Download CSV</a>
+  </header>
+
+  <div class="version-layout">
+    <section class="version-panel version-table-panel">
+      <h2>CSV Data</h2>
+      <div id="table-wrap" class="table-wrap">
+        <table id="data-table" class="data-table">
+          <thead id="table-head"></thead>
+          <tbody id="table-body"></tbody>
+        </table>
+      </div>
+    </section>
+    <section class="version-panel version-chart-panel">
+      <h2>Analysis</h2>
+      <div id="chart-container" class="chart-container">
+        <svg id="pie-chart" class="pie-chart" viewBox="0 0 200 200"></svg>
+        <div id="chart-legend" class="chart-legend"></div>
+      </div>
+      <div id="summary-text" class="summary-text"></div>
+    </section>
+  </div>
+
+  <div id="version-error" class="version-error" hidden></div>
+
+  <script src="version.js"></script>
+</body>
+</html>

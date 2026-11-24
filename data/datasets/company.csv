@@ -1,0 +1,13 @@
+company_id,name,description,primary_contact_attendee_id
+2001,AMAZON,E-Commerce,912001
+2002,GOOGLE,Search,912002
+2003,MICROSOFT,Software,912003
+2004,IBM,Consulting,912004
+2005,INFOSYS,Technology,912013
+2006,COGNIZANT,Outsourcing,912005
+2007,TCS,Business,912007
+2008,WIPRO,IT Services,912008
+2009,APPLE,Electronics,912009
+2010,NETFLIX,Streaming,912010
+2011,ORACLE,,912011
+2012,ADOBE,Software,

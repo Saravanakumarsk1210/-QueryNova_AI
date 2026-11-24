@@ -1,0 +1,188 @@
+{
+  "database": "conference_management_db",
+  "tables": [
+    {
+      "name": "attendee",
+      "description": "Registry of people who may attend conference presentations. Attendee contact details and VIP status are stored here; nullable contact and VIP values support incomplete records.",
+      "primary_key": [
+        "attendee_id"
+      ],
+      "foreign_keys": [],
+      "columns": [
+        {
+          "name": "attendee_id",
+          "type": "INTEGER",
+          "description": "Unique identifier for an attendee."
+        },
+        {
+          "name": "first_name",
+          "type": "VARCHAR(20)",
+          "description": "Attendee's given name."
+        },
+        {
+          "name": "last_name",
+          "type": "VARCHAR(20)",
+          "description": "Attendee's family name."
+        },
+        {
+          "name": "phone",
+          "type": "VARCHAR(10)",
+          "description": "Contact phone number stored as text so leading zeroes are preserved; may be NULL."
+        },
+        {
+          "name": "email",
+          "type": "VARCHAR(40)",
+          "description": "Contact email address; may be NULL, and duplicate values are possible in the practice data."
+        },
+        {
+          "name": "vip",
+          "type": "VARCHAR(4)",
+          "description": "VIP indicator, typically 'yes' or 'no'; may be NULL."
+        }
+      ]
+    },
+    {
+      "name": "room",
+      "description": "Conference room inventory. Each record identifies a room's floor and seating capacity, including rooms with low capacity for edge-case queries.",
+      "primary_key": [
+        "room_id"
+      ],
+      "foreign_keys": [],
+      "columns": [
+        {
+          "name": "room_id",
+          "type": "INTEGER",
+          "description": "Unique identifier for a conference room."
+        },
+        {
+          "name": "floor_number",
+          "type": "INTEGER",
+          "description": "Floor on which the room is located."
+        },
+        {
+          "name": "seat_capacity",
+          "type": "INTEGER",
+          "description": "Maximum number of seats in the room."
+        }
+      ]
+    },
+    {
+      "name": "company",
+      "description": "Organizations associated with the conference. A company may have a primary contact attendee; company names are not unique, and contact or description values may be NULL.",
+      "primary_key": [
+        "company_id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "primary_contact_attendee_id",
+          "references_table": "attendee",
+          "references_column": "attendee_id"
+        }
+      ],
+      "columns": [
+        {
+          "name": "company_id",
+          "type": "INTEGER",
+          "description": "Unique identifier for a company."
+        },
+        {
+          "name": "name",
+          "type": "VARCHAR(20)",
+          "description": "Company or organization name; duplicate names are present in the data."
+        },
+        {
+          "name": "description",
+          "type": "VARCHAR(20)",
+          "description": "Short description of the company's business or industry; may be NULL."
+        },
+        {
+          "name": "primary_contact_attendee_id",
+          "type": "INTEGER",
+          "description": "Nullable foreign key to the attendee who is the company's primary contact."
+        }
+      ]
+    },
+    {
+      "name": "presentation",
+      "description": "Scheduled conference presentations. A presentation may be associated with a booking company and room, both of which are nullable, and has a start and end time.",
+      "primary_key": [
+        "presentation_id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "booked_company_id",
+          "references_table": "company",
+          "references_column": "company_id"
+        },
+        {
+          "column": "booked_room_id",
+          "references_table": "room",
+          "references_column": "room_id"
+        }
+      ],
+      "columns": [
+        {
+          "name": "presentation_id",
+          "type": "INTEGER",
+          "description": "Unique identifier for a presentation."
+        },
+        {
+          "name": "booked_company_id",
+          "type": "INTEGER",
+          "description": "Nullable foreign key to the company booking or sponsoring the presentation."
+        },
+        {
+          "name": "booked_room_id",
+          "type": "INTEGER",
+          "description": "Nullable foreign key to the room assigned to the presentation."
+        },
+        {
+          "name": "start_time",
+          "type": "TIMESTAMP",
+          "description": "Scheduled presentation start date and time."
+        },
+        {
+          "name": "end_time",
+          "type": "TIMESTAMP",
+          "description": "Scheduled presentation end date and time; constrained to be later than start_time."
+        }
+      ]
+    },
+    {
+      "name": "presentation_attendance",
+      "description": "Ticket and attendance junction table linking attendees to presentations. Each ticket is unique; multiple tickets can link the same attendee to the same presentation in the edge-case data.",
+      "primary_key": [
+        "ticket_id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "presentation_id",
+          "references_table": "presentation",
+          "references_column": "presentation_id"
+        },
+        {
+          "column": "attendee_id",
+          "references_table": "attendee",
+          "references_column": "attendee_id"
+        }
+      ],
+      "columns": [
+        {
+          "name": "ticket_id",
+          "type": "VARCHAR(10)",
+          "description": "Unique ticket identifier for an attendance record."
+        },
+        {
+          "name": "presentation_id",
+          "type": "INTEGER",
+          "description": "Foreign key to the presentation associated with this ticket."
+        },
+        {
+          "name": "attendee_id",
+          "type": "INTEGER",
+          "description": "Foreign key to the attendee associated with this ticket."
+        }
+      ]
+    }
+  ]
+}
