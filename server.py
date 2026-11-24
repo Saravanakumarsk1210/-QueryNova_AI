@@ -7,7 +7,7 @@ import mimetypes
 from datetime import datetime
 from typing import Dict, Any, List, Optional
 from fastapi import FastAPI, Depends, HTTPException, Request
-from fastapi.responses import StreamingResponse, FileResponse, JSONResponse
+from fastapi.responses import StreamingResponse, FileResponse, JSONResponse, HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -660,6 +660,61 @@ async def process_chat_query_sse(chat_id: int, req: QueryRequest):
 
 
     return StreamingResponse(sse_event_generator(), media_type="text/event-stream")
+
+# ── EXPLICIT STATIC & ROOT ROUTES (Modeled after EXPENSE TRACKER for robust Vercel serverless delivery) ──
+INDEX_HTML_PATH = WEB_DIR / "index.html"
+_index_html_cache: str = ""
+if INDEX_HTML_PATH.exists():
+    try:
+        _index_html_cache = INDEX_HTML_PATH.read_text(encoding="utf-8")
+    except Exception as _e:
+        print(f"[WARN] Could not pre-read index.html: {_e}")
+
+@app.get("/", response_class=HTMLResponse)
+@app.get("/index.html", response_class=HTMLResponse)
+def serve_root():
+    global _index_html_cache
+    if _index_html_cache:
+        return HTMLResponse(content=_index_html_cache, media_type="text/html; charset=utf-8")
+    if INDEX_HTML_PATH.exists():
+        return FileResponse(str(INDEX_HTML_PATH), media_type="text/html; charset=utf-8")
+    return HTMLResponse("<h1>QueryNova AI</h1><p>Frontend assets loading...</p>", status_code=200)
+
+@app.get("/app.js")
+def serve_app_js():
+    p = WEB_DIR / "app.js"
+    if p.exists():
+        return FileResponse(str(p), media_type="application/javascript")
+    raise HTTPException(status_code=404, detail="app.js not found")
+
+@app.get("/style.css")
+def serve_style_css():
+    p = WEB_DIR / "style.css"
+    if p.exists():
+        return FileResponse(str(p), media_type="text/css")
+    raise HTTPException(status_code=404, detail="style.css not found")
+
+@app.get("/qnsql.webp")
+@app.get("/logo.webp")
+def serve_logo():
+    for p in [WEB_DIR / "qnsql.webp", config.BASE_DIR / "qnsql.webp", config.BASE_DIR / "assets" / "logo.webp"]:
+        if p.exists():
+            return FileResponse(str(p), media_type="image/webp")
+    raise HTTPException(status_code=404, detail="Logo not found")
+
+@app.get("/schema_diagram.webp")
+def serve_schema_diagram():
+    for p in [WEB_DIR / "schema_diagram.webp", config.BASE_DIR / "schema_diagram.webp", config.BASE_DIR / "assets" / "schema_diagram.webp"]:
+        if p.exists():
+            return FileResponse(str(p), media_type="image/webp")
+    raise HTTPException(status_code=404, detail="Schema diagram not found")
+
+@app.get("/favicon.ico")
+def serve_favicon():
+    for p in [WEB_DIR / "qnsql.webp", config.BASE_DIR / "qnsql.webp"]:
+        if p.exists():
+            return FileResponse(str(p), media_type="image/webp")
+    return Response(status_code=204)
 
 if WEB_DIR.exists():
     app.mount("/", StaticFiles(directory=str(WEB_DIR), html=True), name="static")

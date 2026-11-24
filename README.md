@@ -102,18 +102,34 @@ python -m pytest tests/
 
 ## ☁️ Deployment (Vercel + Neon Cloud)
 
+QueryNova AI is configured for one-click serverless deployment on **Vercel** via `@vercel/python`, optimized with explicit asset bundling and memory pre-caching:
+
+### Vercel Architecture Highlights
+- **`vercel.json` Builds Configuration**: Uses `@vercel/python` with explicit `includeFiles` (`web_1/**`, `data/**`, `*.py`, `qnsql.webp`, `schema_diagram.webp`) guaranteeing all static assets and RAG schemas are bundled into the Lambda container.
+- **Instant Root Response**: Pre-loads `index.html` into memory to eliminate cold-start filesystem latency and prevent "Cannot GET /" errors.
+- **Dedicated Asset Routing**: Explicit endpoints for `/app.js`, `/style.css`, `/qnsql.webp`, and `/schema_diagram.webp` ensure correct MIME types across edge rewrites.
+- **Lean Bundle Size**: Uses `.vercelignore` to exclude local tests, caches, and development databases, keeping deployment builds fast and minimal.
+
+### Deployment Steps
 1. **Push to GitHub**:
    ```bash
-   git init
-   git add .
-   git commit -m "Initial commit for QueryNova AI"
-   git branch -M main
-   git remote add origin https://github.com/<your-username>/<your-repo-name>.git
-   git push -u origin main
+   git push origin main
    ```
 2. **Import into Vercel**:
-   - Connect your GitHub repository on [vercel.com](https://vercel.com).
-   - Set framework preset to **Other** (Vercel uses `vercel.json` and Python automatically).
-   - Add your environment variables from `.env` in the Vercel project settings dashboard.
-3. **Deploy**:
-   - Vercel automatically deploys the serverless ASGI application via `api/index.py`.
+   - Log in to [vercel.com](https://vercel.com) and click **Add New Project**.
+   - Import `https://github.com/Saravanakumarsk1210/T2S-`.
+   - Leave Framework Preset as **Other** (Vercel automatically detects `vercel.json`).
+3. **Configure Environment Variables in Vercel Dashboard**:
+   Add the following variables in **Settings > Environment Variables**:
+   | Variable | Value / Description |
+   |---|---|
+   | `DATABASE_URL` | Your Neon Cloud PostgreSQL connection string (`postgresql://...`) |
+   | `NEON_API_URL` | Your Neon API REST URL |
+   | `GROQ_API_KEY` | Your Groq API key for LLM inference |
+   | `TARGET_DB_TYPE` | `postgres` |
+   | `DB_BACKEND_PREFERENCE` | `postgres` |
+   | `PRIMARY_LLM_MODEL` | `openai/gpt-oss-120b` |
+   | `JUDGE_LLM_MODEL` | `openai/gpt-oss-20b` |
+   | `FALLBACK_LLM_MODEL` | `qwen/qwen3.8-27b` |
+4. **Deploy**:
+   - Click **Deploy**. Vercel will build and serve QueryNova AI instantly.
