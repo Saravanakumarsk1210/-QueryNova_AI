@@ -117,7 +117,7 @@ QueryNova AI is configured for one-click serverless deployment on **Vercel** via
    ```
 2. **Import into Vercel**:
    - Log in to [vercel.com](https://vercel.com) and click **Add New Project**.
-   - Import `https://github.com/Saravanakumarsk1210/T2S-`.
+   - Import `https://github.com/Saravanakumarsk1210/-QueryNova_AI`.
    - Leave Framework Preset as **Other** (Vercel automatically detects `vercel.json`).
 3. **Configure Environment Variables in Vercel Dashboard**:
    Add the following variables in **Settings > Environment Variables**:
